@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Christinas LED Waffe</title>
+<style>
+  @font-face { font-family: 'system-mono'; src: local('JetBrains Mono'), local('SF Mono'), local('Consolas'); }
+
+  :root{
+    --void:#060a10;
+    --panel:#0e141d;
+    --panel-raised:#141c28;
+    --line:#212b3a;
+    --line-soft:#182130;
+    --text:#e7ecf3;
+    --muted:#6b7787;
+    --muted-2:#4a5566;
+    --cyan:#35e7d2;
+    --cyan-dim:#1a5c54;
+    --amber:#ffb13c;
+    --magenta:#ff3d81;
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --sans: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  html,body{
+    background:var(--void);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+  }
+
+  body{
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(53,231,210,0.045) 1px, transparent 0);
+    background-size: 26px 26px;
+  }
+
+  ::selection{ background:var(--cyan); color:var(--void); }
+
+  input:focus-visible, select:focus-visible, button:focus-visible{
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+  }
+
+  .wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 24px 100px;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding: 20px 0 44px;
+    border-bottom: 1px solid var(--line-soft);
+    margin-bottom: 40px;
+  }
+
+  .hero-status{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 22px;
+    text-transform: uppercase;
+  }
+  .hero-status span.dot{
+    display:inline-block; width:6px; height:6px; border-radius:50%;
+    background:var(--cyan); margin-right:7px;
+    box-shadow:0 0 6px var(--cyan);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  .matrix-title{ display:flex; flex-direction:column; gap:10px; }
+  .matrix-row{ display:flex; gap: clamp(3px, 0.6vw, 6px); }
+  .matrix-letter{
+    display:grid;
+    grid-template-columns: repeat(5, clamp(4px, 1vw, 9px));
+    grid-template-rows: repeat(7, clamp(4px, 1vw, 9px));
+    gap: clamp(1.5px, 0.25vw, 2.5px);
+  }
+  .matrix-letter.space{ width: clamp(10px, 2vw, 20px); }
+  .px{
+    width:100%; height:100%;
+    border-radius:1px;
+    background: #10161f;
+  }
+  .px.on{
+    background: var(--cyan);
+    box-shadow: 0 0 6px rgba(53,231,210,0.85), 0 0 2px rgba(53,231,210,1);
+    animation: flicker-in .5s ease-out backwards;
+  }
+  @keyframes flicker-in{
+    0%{ opacity:0; }
+    35%{ opacity:.9; }
+    55%{ opacity:.2; }
+    100%{ opacity:1; }
+  }
+
+  .tagline{
+    margin-top: 24px;
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.6;
+  }
+  .tagline strong{ color:var(--text); font-weight:600; }
+
+  /* ---------- LAYOUT ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: 340px 1fr;
+    gap: 28px;
+    align-items:start;
+  }
+  @media (max-width: 880px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+
+  .col-inputs{
+    position: sticky;
+    top: 24px;
+    display:flex;
+    flex-direction:column;
+    gap: 18px;
+  }
+  @media (max-width: 880px){ .col-inputs{ position:static; } }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:14px; height:1px; background:var(--cyan-dim);
+  }
+
+  .field{ margin-bottom: 14px; }
+  .field:last-child{ margin-bottom:0; }
+  .field label{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field label .unit{ font-family:var(--mono); color:var(--muted-2); font-size:11px; }
+
+  .field input[type=number], .field select{
+    width:100%;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 9px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    transition: border-color .15s;
+  }
+  .field input[type=number]:hover, .field select:hover{ border-color: var(--muted-2); }
+  .field input[type=number]:focus, .field select:focus{
+    border-color: var(--cyan);
+    outline:none;
+  }
+  .field select{ appearance:none; cursor:pointer; }
+
+  .subgroup-title{
+    font-size:11px; color:var(--muted-2); text-transform:uppercase; letter-spacing:.08em;
+    margin: 16px 0 8px; font-family:var(--mono);
+  }
+  .panel > .subgroup-title:first-child{ margin-top:0; }
+
+  /* ---------- RESULTS ---------- */
+  .col-results{ display:flex; flex-direction:column; gap: 22px; }
+
+  .section-tag{
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:14px;
+  }
+  .section-tag .tag{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.14em;
+    color:var(--void); background:var(--cyan);
+    padding:3px 8px; border-radius:4px; font-weight:700;
+  }
+  .section-tag .desc{ font-size:12px; color:var(--muted); }
+
+  .cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:'';
+    position:absolute; top:0; left:0; width:100%; height:2px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+    opacity:.5;
+  }
+  .card.warn::before{ background: linear-gradient(90deg, var(--amber), transparent); }
+
+  .card .label{
+    font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;
+    margin-bottom:8px;
+  }
+  .card .value{
+    font-family:var(--mono);
+    font-size: 22px;
+    font-weight:600;
+    color: var(--text);
+    line-height:1.25;
+  }
+  .card .value .sub{ font-size:13px; color:var(--muted-2); font-weight:400; }
+  .card .value.accent{ color:var(--cyan); }
+  .card .value.warn{ color:var(--amber); }
+  .card .caption{
+    margin-top:8px; font-size:11.5px; color:var(--muted-2); line-height:1.5;
+  }
+
+  .wide{ grid-column: 1 / -1; }
+
+  .fuse-banner{
+    display:flex; align-items:center; gap:14px;
+    background: linear-gradient(90deg, rgba(255,177,60,0.10), rgba(255,177,60,0.02));
+    border: 1px solid rgba(255,177,60,0.35);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .fuse-banner .icon{
+    font-family:var(--mono); font-size:20px; color:var(--amber);
+    width:34px; height:34px; border-radius:50%;
+    border:1px solid rgba(255,177,60,0.5);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .fuse-banner .txt{ font-size:13px; color:var(--text); line-height:1.5; }
+  .fuse-banner .txt b{ color:var(--amber); font-family:var(--mono); font-size:15px; }
+
+  footer{
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line-soft);
+    font-size: 11px;
+    color: var(--muted-2);
+    font-family: var(--mono);
+    letter-spacing:.04em;
+  }
+
+  /* ---------- TABS ---------- */
+  .tabs{
+    display:flex;
+    gap: 4px;
+    margin-bottom: 32px;
+  }
+  .tab-btn{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 10px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab-btn:hover{ color: var(--text); border-color: var(--muted-2); }
+  .tab-btn.active{
+    background: var(--cyan);
+    color: var(--void);
+    border-color: var(--cyan);
+    font-weight: 700;
+  }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+
+  /* ---------- GLOSSARY ---------- */
+  .gloss-intro{
+    font-size: 13.5px;
+    color: var(--muted);
+    max-width: 680px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+  .gloss-group{ margin-bottom: 30px; }
+  .gloss-list{ display:flex; flex-direction:column; gap: 10px; }
+  .gloss-item{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .gloss-item .term{
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--cyan);
+    margin-bottom: 6px;
+    font-weight:600;
+  }
+  .gloss-item .def{
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .gloss-item .impact{
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    padding-left: 14px;
+    border-left: 2px solid var(--cyan-dim);
+  }
+  .gloss-item .impact b{ color: var(--amber); font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-status">
+      <span><span class="dot"></span>SYSTEM BEREIT</span>
+      <span>MODUS: FESTINSTALLATION</span>
+      <span id="statusRes">—</span>
+    </div>
+
+    <div class="matrix-title" id="matrixTitle"></div>
+
+    <p class="tagline">
+      LED-Wand-Kalkulator für feste Installationen. Werte links eingeben — <strong>Seitenverhältnis, physikalische Größe, Pixel Pitch, Blickdistanzen, Leistungsaufnahme, Gewicht und Signalbedarf</strong> werden live berechnet.
+    </p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="btnTabCalc" type="button" data-tab="calc">Kalkulator</button>
+    <button class="tab-btn" id="btnTabGloss" type="button" data-tab="gloss">Erklärungen</button>
+  </div>
+
+  <div class="tab-panel active" id="tabCalc">
+  <div class="grid">
+
+    <!-- ============ INPUTS ============ -->
+    <div class="col-inputs">
+
+      <div class="panel">
+        <div class="eyebrow">Wandgeometrie</div>
+
+        <div class="field">
+          <label>Wandbreite <span class="unit">m</span></label>
+          <input type="number" id="wandBreite" value="6" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label>Wandhöhe <span class="unit">m</span></label>
+          <input type="number" id="wandHoehe" value="3.375" step="0.01" min="0">
+        </div>
+
+        <div class="subgroup-title">Modul</div>
+        <div class="field">
+          <label>Modulbreite <span class="unit">mm</span></label>
+          <input type="number" id="modulBreite" value="500" step="1" min="1">
+        </div>
+        <div class="field">
+          <label>Modulhöhe <span class="unit">mm</span></label>
+          <input type="number" id="modulHoehe" value="500" step="1" min="1">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow">Pixel Pitch</div>
+        <div class="field">
+          <label>Pixel Pitch <span class="unit">mm</span></label>
+          <input type="number" id="pixelPitch" value="2.6" step="0.01" min="0.1">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow">DISCAS · Blickdistanz</div>
+        <div class="field">
+          <label>Faktor Minimum <span class="unit">m / mm Pitch</span></label>
+          <input type="number" id="fMin" value="1" step="0.1" min="0">
+        </div>
+        <div class="field">
+          <label>Faktor Optimal <span class="unit">m / mm Pitch</span></label>
+          <input type="number" id="fOpt" value="2.5" step="0.1" min="0">
+        </div>
+        <div class="field">
+          <label>Faktor Maximum <span class="unit">m / mm Pitch</span></label>
+          <input type="number" id="fMax" value="10" step="0.5" min="0">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow">Leistungsaufnahme</div>
+        <div class="field">
+          <label>Ø Leistung <span class="unit">W/m²</span></label>
+          <input type="number" id="pAvg" value="180" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Max. Leistung <span class="unit">W/m²</span></label>
+          <input type="number" id="pMax" value="600" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Anschluss</label>
+          <select id="anschluss">
+            <option value="230">230 V · 1-phasig</option>
+            <option value="400">400 V · 3-phasig (symmetrisch)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Sicherheitsfaktor <span class="unit">×</span></label>
+          <input type="number" id="safety" value="1.2" step="0.05" min="1">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow">Gewicht</div>
+        <div class="field">
+          <label>Gewicht <span class="unit">kg/m²</span></label>
+          <input type="number" id="gewicht" value="12" step="0.1" min="0">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="eyebrow">Signalverarbeitung</div>
+        <div class="field">
+          <label>Pixel pro Port <span class="unit">px</span></label>
+          <input type="number" id="pxPort" value="650000" step="1000" min="1000">
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============ RESULTS ============ -->
+    <div class="col-results">
+
+      <div>
+        <div class="section-tag"><span class="tag">Geometrie</span><span class="desc">Fläche, Raster, Seitenverhältnis</span></div>
+        <div class="cards">
+          <div class="card">
+            <div class="label">Seitenverhältnis</div>
+            <div class="value accent" id="outRatio">—</div>
+            <div class="caption" id="outRatioCaption"></div>
+          </div>
+          <div class="card">
+            <div class="label">Physikalische Größe</div>
+            <div class="value" id="outSize">—</div>
+            <div class="caption" id="outSizeCaption"></div>
+          </div>
+          <div class="card">
+            <div class="label">Modulanzahl</div>
+            <div class="value" id="outModules">—</div>
+            <div class="caption">horizontal × vertikal</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-tag"><span class="tag">Optik</span><span class="desc">Auflösung, Pixeldichte, Blickdistanz</span></div>
+        <div class="cards">
+          <div class="card">
+            <div class="label">Auflösung</div>
+            <div class="value accent" id="outRes">—</div>
+            <div class="caption" id="outResCaption"></div>
+          </div>
+          <div class="card">
+            <div class="label">Pixeldichte</div>
+            <div class="value" id="outPpi">—</div>
+            <div class="caption">Pixel pro Zoll (PPI)</div>
+          </div>
+          <div class="card wide">
+            <div class="label">DISCAS — Betrachtungsabstand</div>
+            <div class="value" id="outDiscas">—</div>
+            <div class="caption">Minimum · Optimal · Maximum, jeweils Pixel Pitch × Faktor. Faustregel, an Teamstandard anpassbar über die Faktoren links.</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-tag"><span class="tag">Strom</span><span class="desc">Leistungsaufnahme, Absicherung</span></div>
+        <div class="cards">
+          <div class="card">
+            <div class="label">Leistung Ø</div>
+            <div class="value" id="outPowerAvg">—</div>
+          </div>
+          <div class="card">
+            <div class="label">Leistung Max</div>
+            <div class="value" id="outPowerMax">—</div>
+          </div>
+          <div class="card wide warn">
+            <div class="label">Empfohlene Mindestabsicherung</div>
+            <div class="value warn" id="outFuse">—</div>
+            <div class="caption" id="outFuseCaption"></div>
+          </div>
+        </div>
+        <div class="fuse-banner" style="margin-top:12px;">
+          <div class="icon">!</div>
+          <div class="txt" id="fuseBanner">Absicherung wird berechnet, sobald Wandmaße und Leistungswerte eingetragen sind.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-tag"><span class="tag">Gewicht</span><span class="desc">Gesamtlast der Wand</span></div>
+        <div class="cards">
+          <div class="card">
+            <div class="label">Gesamtgewicht</div>
+            <div class="value" id="outWeight">—</div>
+            <div class="caption">Statik der Montagefläche vorab prüfen lassen.</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-tag"><span class="tag">Signal</span><span class="desc">Sendekarten / Ports</span></div>
+        <div class="cards">
+          <div class="card">
+            <div class="label">Benötigte Ports</div>
+            <div class="value accent" id="outPorts">—</div>
+            <div class="caption" id="outPortsCaption"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+  <!-- /tabCalc -->
+
+  <div class="tab-panel" id="tabGloss">
+    <p class="gloss-intro">
+      Jeder Wert im Kalkulator hat einen Zweck. Hier steht, was er bedeutet, wie er berechnet wird und welche anderen Werte er beeinflusst — als Nachschlagewerk, nicht zum Auswendiglernen.
+    </p>
+
+    <div class="gloss-group">
+      <div class="section-tag"><span class="tag">Geometrie</span><span class="desc">Eingaben zur Wandgröße</span></div>
+      <div class="gloss-list">
+
+        <div class="gloss-item">
+          <div class="term">Wandbreite / Wandhöhe</div>
+          <div class="def">Die gewünschte Zielgröße der LED-Wand in Metern — die Vorgabe, mit der die Planung startet.</div>
+          <div class="impact">Beeinflusst: <b>Modulanzahl</b>, <b>physikalische Größe</b> (nach Rundung auf volle Module), <b>Fläche</b> — und darüber indirekt <b>Auflösung</b>, <b>Leistungsaufnahme</b> und <b>Gewicht</b>, die alle mit der Fläche skalieren.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">Modulbreite / Modulhöhe</div>
+          <div class="def">Die Kantenlänge eines einzelnen LED-Panels in Millimetern, meist 500×500 mm oder 500×1000 mm — je nach Produktlinie.</div>
+          <div class="impact">Beeinflusst: wie viele Module gebraucht werden und ob die Wand exakt passt oder aufgerundet werden muss. Diese Rundung ist der Grund, warum die berechnete <b>physikalische Größe</b> meist etwas größer ist als die eingegebene Wunschgröße.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="gloss-group">
+      <div class="section-tag"><span class="tag">Optik</span><span class="desc">Pixel Pitch, Auflösung, Blickdistanz</span></div>
+      <div class="gloss-list">
+
+        <div class="gloss-item">
+          <div class="term">Pixel Pitch</div>
+          <div class="def">Der Abstand zwischen den Mittelpunkten zweier benachbarter Pixel, in Millimetern. Kleinerer Wert = feineres Bild.</div>
+          <div class="impact">Beeinflusst: <b>Auflösung</b> (kleinerer Pitch = mehr Pixel auf gleicher Fläche), <b>Pixeldichte</b>, alle drei <b>DISCAS-Distanzen</b> (kleinerer Pitch = näher heranstehen möglich) sowie den <b>Port-Bedarf</b>, da mehr Pixel mehr Signalkapazität brauchen.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">Seitenverhältnis</div>
+          <div class="def">Das Verhältnis von Breite zu Höhe der realen (gerundeten) Wandgröße, z. B. 16:9 oder ein "krummes" LED-typisches Verhältnis.</div>
+          <div class="impact">Wichtig für: die Anpassung von Content — weicht das Verhältnis stark von Standardformaten ab, muss Zuspielmaterial skaliert oder neu geschnitten werden.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">Auflösung</div>
+          <div class="def">Gesamtzahl der Pixel horizontal × vertikal, berechnet aus Modulanzahl × Pixel pro Modul (das wiederum aus Modulgröße ÷ Pixel Pitch folgt).</div>
+          <div class="impact">Bestimmt: die native Auflösung für Content-Erstellung und den <b>Port-Bedarf</b> der Sendekarten.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">Pixeldichte (PPI)</div>
+          <div class="def">Pixel pro Zoll — ein normierter Vergleichswert, unabhängig von der absoluten Wandgröße. Nützlich, um unterschiedliche Pitch-Angebote objektiv zu vergleichen.</div>
+          <div class="impact">Rein informativ, fließt in keine andere Berechnung ein.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">DISCAS — Faktoren Min / Optimal / Max</div>
+          <div class="def">Multiplikatoren (Meter Abstand pro Millimeter Pitch), mit denen die drei Betrachtungsabstände berechnet werden. Die Defaults (1 / 2,5 / 10) sind gängige Faustregeln — manche Hersteller oder Teams verwenden andere Werte.</div>
+          <div class="impact">Beeinflusst direkt: die drei ausgegebenen <b>Blickdistanzen</b>. Sollte an den tatsächlichen Teamstandard oder Herstellerangaben angepasst werden, wenn abweichend.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">DISCAS-Ergebnis (Min / Optimal / Max)</div>
+          <div class="def"><b style="color:var(--text); font-weight:600;">Minimum:</b> ab hier wird die Pixelstruktur nicht mehr störend wahrgenommen. <b style="color:var(--text); font-weight:600;">Optimal:</b> komfortabler Betrachtungsabstand für die meiste Zeit der Nutzung. <b style="color:var(--text); font-weight:600;">Maximum:</b> darüber hinaus werden Details auf der Wand kaum noch erkennbar.</div>
+          <div class="impact">Wichtig für: Raumplanung, Publikumsbereich, Bühnenabstand — bestimmt, wie nah das Publikum sinnvoll an die Wand heran darf bzw. muss.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="gloss-group">
+      <div class="section-tag"><span class="tag">Strom</span><span class="desc">Leistung und Absicherung</span></div>
+      <div class="gloss-list">
+
+        <div class="gloss-item">
+          <div class="term">Ø Leistung pro m²</div>
+          <div class="def">Durchschnittliche Leistungsaufnahme im typischen Betrieb (übliches Bildmaterial, keine Extremwerte). Herstellerangabe, variiert je Produkt.</div>
+          <div class="impact">Beeinflusst: <b>Leistung Ø (kW)</b> — relevant für die Abschätzung der laufenden Stromkosten und die durchschnittliche Netzlast.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">Max. Leistung pro m²</div>
+          <div class="def">Spitzenleistung bei vollem Weißbild / maximaler Helligkeit. Herstellerangabe, meist 3–4× so hoch wie der Durchschnittswert.</div>
+          <div class="impact">Beeinflusst: <b>Leistung Max (kW)</b> und darüber die <b>empfohlene Mindestabsicherung</b> — die Auslegung erfolgt immer auf den Maximalwert, nie auf den Durchschnitt.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">Anschluss (230 V / 400 V)</div>
+          <div class="def">Einphasiger (230 V) oder dreiphasiger (400 V, symmetrisch verteilt) Netzanschluss.</div>
+          <div class="impact">Beeinflusst: wie der Gesamtstrom berechnet wird — bei 400 V dreiphasig verteilt sich die Last rechnerisch auf drei Phasen, wodurch der Strom pro Phase sinkt und kleinere Sicherungen je Phase ausreichen können.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">Sicherheitsfaktor</div>
+          <div class="def">Reserve-Aufschlag auf die berechnete Maximalleistung, um Einschaltstromspitzen, Alterung und Toleranzen abzufangen. Default: ×1,2 entspricht 20 % Headroom.</div>
+          <div class="impact">Beeinflusst direkt: die <b>empfohlene Mindestabsicherung</b> — höherer Faktor führt schneller zur nächstgrößeren Sicherungsstufe.</div>
+        </div>
+
+        <div class="gloss-item">
+          <div class="term">Empfohlene Mindestabsicherung</div>
+          <div class="def">Der berechnete Strombedarf, aufgerundet auf die nächste genormte Sicherungsgröße (6, 10, 16, 20, 25, 32 A usw.).</div>
+          <div class="impact">Grundlage für die Elektroplanung vor Ort. <b>Ersetzt keine Prüfung durch eine Elektrofachkraft</b> — dient nur der ersten Abschätzung im Vorfeld.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="gloss-group">
+      <div class="section-tag"><span class="tag">Gewicht</span><span class="desc">Statik der Montagefläche</span></div>
+      <div class="gloss-list">
+
+        <div class="gloss-item">
+          <div class="term">Gewicht pro m²</div>
+          <div class="def">Flächengewicht der Module inkl. Halterungssystem, in kg/m². Herstellerangabe.</div>
+          <div class="impact">Beeinflusst: das <b>Gesamtgewicht</b> der Wand — relevant für die Prüfung, ob die Montagefläche (Wand, Unterkonstruktion) die Last tragen kann.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="gloss-group">
+      <div class="section-tag"><span class="tag">Signal</span><span class="desc">Sendekarten / Ports</span></div>
+      <div class="gloss-list">
+
+        <div class="gloss-item">
+          <div class="term">Pixel pro Port</div>
+          <div class="def">Maximale Pixelanzahl, die ein einzelner Ausgang einer Sendekarte ansteuern kann. Herstellerabhängig, ein häufiger Richtwert liegt bei rund 650.000 Pixeln pro Port.</div>
+          <div class="impact">Beeinflusst: die <b>Anzahl benötigter Ports</b> — bei gleicher Wandgröße erhöht ein feinerer Pixel Pitch (mehr Gesamtpixel) automatisch den Port-Bedarf.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+  <!-- /tabGloss -->
+
+  <footer>CHRISTINAS LED WAFFE — LED-WAND-KALKULATOR — NUR FÜR FESTINSTALLATIONEN</footer>
+</div>
+
+<script>
+/* ---------- Dot-matrix font (5x7) ---------- */
+const FONT = {
+  'A': ['01110','10001','10001','11111','10001','10001','10001'],
+  'C': ['01111','10000','10000','10000','10000','10000','01111'],
+  'D': ['11110','10001','10001','10001','10001','10001','11110'],
+  'E': ['11111','10000','10000','11110','10000','10000','11111'],
+  'F': ['11111','10000','10000','11110','10000','10000','10000'],
+  'H': ['10001','10001','10001','11111','10001','10001','10001'],
+  'I': ['11111','00100','00100','00100','00100','00100','11111'],
+  'L': ['10000','10000','10000','10000','10000','10000','11111'],
+  'N': ['10001','11001','10101','10101','10011','10001','10001'],
+  'R': ['11110','10001','10001','11110','10100','10010','10001'],
+  'S': ['01111','10000','10000','01110','00001','00001','11110'],
+  'T': ['11111','00100','00100','00100','00100','00100','00100'],
+  'W': ['10001','10001','10001','10101','10101','10101','01010'],
+  ' ': ['00000','00000','00000','00000','00000','00000','00000']
+};
+
+function buildMatrixRow(word, container){
+  const row = document.createElement('div');
+  row.className = 'matrix-row';
+  let delay = 0;
+  for(const ch of word){
+    const glyph = FONT[ch] || FONT[' '];
+    const letterEl = document.createElement('div');
+    letterEl.className = 'matrix-letter' + (ch===' ' ? ' space' : '');
+    if(ch !== ' '){
+      for(let r=0;r<7;r++){
+        for(let c=0;c<5;c++){
+          const on = glyph[r][c] === '1';
+          const px = document.createElement('div');
+          px.className = 'px' + (on ? ' on' : '');
+          if(on){ px.style.animationDelay = (delay*14)+'ms'; delay++; }
+          letterEl.appendChild(px);
+        }
+      }
+    }
+    row.appendChild(letterEl);
+  }
+  container.appendChild(row);
+}
+
+const titleEl = document.getElementById('matrixTitle');
+buildMatrixRow('CHRISTINAS', titleEl);
+buildMatrixRow('LED WAFFE', titleEl);
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const num = id => parseFloat($(id).value) || 0;
+const fmt = (n, d=2) => n.toLocaleString('de-DE', {minimumFractionDigits:d, maximumFractionDigits:d});
+const fmtInt = n => Math.round(n).toLocaleString('de-DE');
+
+function gcd(a,b){ return b === 0 ? a : gcd(b, a % b); }
+
+const BREAKERS = [6,10,13,16,20,25,32,40,50,63,80,100,125,160];
+function nextBreaker(amps){
+  for(const b of BREAKERS){ if(b >= amps) return b; }
+  return BREAKERS[BREAKERS.length-1];
+}
+
+/* ---------- Core calculation ---------- */
+function calculate(){
+  const wandBreiteM = num('wandBreite');
+  const wandHoeheM  = num('wandHoehe');
+  const modulBreiteMM = num('modulBreite');
+  const modulHoeheMM  = num('modulHoehe');
+  const pitch = num('pixelPitch');
+  const fMin = num('fMin'), fOpt = num('fOpt'), fMax = num('fMax');
+  const pAvgM2 = num('pAvg'), pMaxM2 = num('pMax');
+  const spannung = parseFloat($('anschluss').value);
+  const safety = num('safety') || 1;
+  const gewichtM2 = num('gewicht');
+  const pxPerPort = num('pxPort') || 1;
+
+  if(!wandBreiteM || !wandHoeheM || !modulBreiteMM || !modulHoeheMM || !pitch){
+    $('statusRes').textContent = 'Eingaben unvollständig';
+    return;
+  }
+
+  // Module / real dimensions
+  const modH = Math.ceil((wandBreiteM*1000) / modulBreiteMM);
+  const modV = Math.ceil((wandHoeheM*1000) / modulHoeheMM);
+  const realBreiteM = (modH * modulBreiteMM) / 1000;
+  const realHoeheM  = (modV * modulHoeheMM) / 1000;
+  const flaeche = realBreiteM * realHoeheM;
+
+  // Aspect ratio
+  const bMM = Math.round(realBreiteM*1000), hMM = Math.round(realHoeheM*1000);
+  const g = gcd(bMM, hMM) || 1;
+  const ratioW = bMM/g, ratioH = hMM/g;
+  const decimalRatio = realBreiteM / realHoeheM;
+
+  $('outRatio').textContent = ratioW + ' : ' + ratioH;
+  $('outRatioCaption').textContent = 'entspricht ' + fmt(decimalRatio,2) + ' : 1' +
+    (Math.abs(decimalRatio-16/9)<0.02 ? ' — nahe 16:9' :
+     Math.abs(decimalRatio-21/9)<0.03 ? ' — nahe 21:9' :
+     Math.abs(decimalRatio-4/3)<0.02 ? ' — nahe 4:3' : '');
+
+  $('outSize').innerHTML = fmt(realBreiteM,2) + ' × ' + fmt(realHoeheM,2) + ' <span class="sub">m</span>';
+  $('outSizeCaption').textContent = 'Fläche: ' + fmt(flaeche,2) + ' m² · gerundet auf volle Module';
+  $('outModules').textContent = modH + ' × ' + modV + ' = ' + fmtInt(modH*modV) + ' Module';
+
+  // Resolution
+  const pxProModulH = Math.round(modulBreiteMM / pitch);
+  const pxProModulV = Math.round(modulHoeheMM / pitch);
+  const resH = modH * pxProModulH;
+  const resV = modV * pxProModulV;
+  const totalPx = resH * resV;
+
+  $('outRes').textContent = fmtInt(resH) + ' × ' + fmtInt(resV) + ' px';
+  $('outResCaption').textContent = fmtInt(totalPx) + ' Pixel gesamt · ' + pxProModulH + '×' + pxProModulV + ' px pro Modul bei ' + fmt(pitch,2) + ' mm Pitch';
+
+  const diagIn = Math.sqrt(Math.pow(realBreiteM*39.3701,2) + Math.pow(realHoeheM*39.3701,2));
+  const ppi = Math.sqrt(resH*resH + resV*resV) / diagIn;
+  $('outPpi').textContent = fmt(ppi,1) + ' PPI';
+
+  // DISCAS
+  const dMin = pitch * fMin, dOpt = pitch * fOpt, dMax = pitch * fMax;
+  $('outDiscas').innerHTML =
+    'Min ' + fmt(dMin,1) + ' m &nbsp;·&nbsp; Optimal ' + fmt(dOpt,1) + ' m &nbsp;·&nbsp; Max ' + fmt(dMax,1) + ' m';
+
+  // Power
+  const powerAvgKW = flaeche * pAvgM2 / 1000;
+  const powerMaxKW = flaeche * pMaxM2 / 1000;
+  $('outPowerAvg').innerHTML = fmt(powerAvgKW,2) + ' <span class="sub">kW</span>';
+  $('outPowerMax').innerHTML = fmt(powerMaxKW,2) + ' <span class="sub">kW</span>';
+
+  let amps, phaseNote;
+  if(spannung === 230){
+    amps = (powerMaxKW*1000*safety) / 230;
+    phaseNote = 'einphasig bei 230 V';
+  } else {
+    amps = (powerMaxKW*1000*safety) / (3*230);
+    phaseNote = 'pro Phase bei symmetrischer 400-V-Drehstromlast';
+  }
+  const breaker = nextBreaker(amps);
+  $('outFuse').innerHTML = breaker + ' <span class="sub">A</span>';
+  $('outFuseCaption').textContent = 'berechnet: ' + fmt(amps,1) + ' A ' + phaseNote + ', inkl. Sicherheitsfaktor ×' + fmt(safety,2);
+
+  const circuits16 = Math.ceil(amps/16);
+  $('fuseBanner').innerHTML =
+    'Mindestens <b>' + breaker + ' A</b> je Stromkreis vorsehen. ' +
+    (amps > 32
+      ? 'Bei ' + fmt(amps,1) + ' A empfiehlt sich die Aufteilung auf mehrere Stromkreise — z.\u202fB. ' + circuits16 + ' × 16-A-Sicherung.'
+      : 'Ein einzelner Stromkreis reicht bei dieser Last üblicherweise aus.');
+
+  // Weight
+  const totalWeight = flaeche * gewichtM2;
+  $('outWeight').innerHTML = fmtInt(totalWeight) + ' <span class="sub">kg</span>';
+
+  // Ports
+  const ports = Math.ceil(totalPx / pxPerPort);
+  $('outPorts').textContent = ports + (ports===1 ? ' Port' : ' Ports');
+  $('outPortsCaption').textContent = 'bei ' + fmtInt(pxPerPort) + ' px Kapazität je Port';
+
+  $('statusRes').textContent = fmt(realBreiteM,2) + '×' + fmt(realHoeheM,2) + 'm · ' + fmtInt(totalPx) + 'px · ' + ratioW + ':' + ratioH;
+}
+
+document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calculate));
+calculate();
+
+/* ---------- Tabs ---------- */
+function switchTab(tab){
+  const isCalc = tab === 'calc';
+  $('tabCalc').classList.toggle('active', isCalc);
+  $('tabGloss').classList.toggle('active', !isCalc);
+  $('btnTabCalc').classList.toggle('active', isCalc);
+  $('btnTabGloss').classList.toggle('active', !isCalc);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+</script>
+
+</body>
+</html>
