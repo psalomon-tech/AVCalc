@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Christinas LED Waffe</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.0.0/jspdf.umd.min.js"></script>
 <style>
   @font-face { font-family: 'system-mono'; src: local('JetBrains Mono'), local('SF Mono'), local('Consolas'); }
 
@@ -284,6 +285,35 @@
   }
   .reset-btn{ margin-left: auto; color: var(--muted); }
   .reset-btn:hover{ color: var(--amber); border-color: rgba(255,177,60,0.4); }
+  .export-btn{ color: var(--cyan); border-color: var(--cyan-dim); }
+  .export-btn:hover{ background: rgba(53,231,210,0.08); }
+  .export-btn:disabled{ opacity:0.5; cursor:default; }
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{
+    position: fixed; inset: 0;
+    background: rgba(6,10,16,0.72);
+    display:none; align-items:center; justify-content:center;
+    z-index: 1000; padding: 20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    width: min(420px, 100%);
+  }
+  .modal-title{ font-family: var(--mono); color: var(--cyan); font-size: 14px; font-weight:700; margin-bottom: 8px; letter-spacing:.03em; }
+  .modal-desc{ font-size: 12.5px; color: var(--muted); margin-bottom: 14px; line-height:1.5; }
+  .modal-desc.error{ color: var(--amber); }
+  #pdfNameInput{
+    width:100%; background: var(--panel-raised); border:1px solid var(--line);
+    border-radius:6px; padding:11px 12px; color:var(--text);
+    font-family: var(--mono); font-size:14px; margin-bottom:18px;
+  }
+  #pdfNameInput:focus{ border-color: var(--cyan); outline:none; }
+  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; }
   .tab-btn{
     font-family: var(--mono);
     font-size: 12px;
@@ -650,6 +680,7 @@
     <button class="tab-btn active" id="btnTabCalc" type="button" data-tab="calc">Kalkulator</button>
     <button class="tab-btn" id="btnTabFormeln" type="button" data-tab="formeln">Formeln</button>
     <button class="tab-btn" id="btnTabGloss" type="button" data-tab="gloss">Erklärungen</button>
+    <button class="tab-btn export-btn" id="btnPdfExport" type="button">⇩ PDF exportieren</button>
     <button class="tab-btn reset-btn" id="btnReset" type="button">⟲ Zurücksetzen</button>
   </div>
 
@@ -1331,6 +1362,18 @@
   <footer>CHRISTINAS LED WAFFE — LED-WAND-KALKULATOR — NUR FÜR FESTINSTALLATIONEN</footer>
 </div>
 
+<div class="modal-overlay" id="pdfModalOverlay">
+  <div class="modal-box">
+    <div class="modal-title">PDF exportieren</div>
+    <div class="modal-desc" id="pdfModalDesc">Name für dieses Angebot / diese Konfiguration — wird als Titel im PDF und als Dateiname verwendet.</div>
+    <input type="text" id="pdfNameInput" placeholder="z. B. Kunde XY – Foyer-Wand">
+    <div class="modal-actions">
+      <button type="button" class="tool-add-btn" id="pdfCancelBtn">Abbrechen</button>
+      <button type="button" class="mode-btn active" id="pdfConfirmBtn">PDF erstellen</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ---------- Dot-matrix font (5x7) ---------- */
 const FONT = {
@@ -1516,6 +1559,21 @@ document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
 });
 
 /* ---------- 16:9 Content-Vergleich (mit PiP-Grid) ---------- */
+/* Shared fit logic: given a wall's W/H (any unit) and a target ratio, returns
+   the content box size in the same unit, for 'contain' or 'cover' mode. */
+function computeContentFit(wallW, wallH, ratio, mode){
+  const wallRatio = wallW / wallH;
+  let contentW, contentH;
+  if(mode === 'contain'){
+    if(wallRatio > ratio){ contentH = wallH; contentW = wallH * ratio; }
+    else { contentW = wallW; contentH = wallW / ratio; }
+  } else {
+    if(wallRatio > ratio){ contentW = wallW; contentH = wallW / ratio; }
+    else { contentH = wallH; contentW = wallH * ratio; }
+  }
+  return { wallRatio, contentW, contentH };
+}
+
 function updateVisual(){
   if(!lastWallW || !lastWallH) return;
 
@@ -1527,23 +1585,17 @@ function updateVisual(){
   const stageW = Math.min(stage.clientWidth - 40, 460) || 420;
   const stageH = 260;
 
-  const wallRatio = lastWallW / lastWallH;
   const scale = Math.min(stageW / lastWallW, stageH / lastWallH);
   const wallPxW = lastWallW * scale;
   const wallPxH = lastWallH * scale;
 
+  const fitPx = computeContentFit(wallPxW, wallPxH, ratio, vizMode);
+  const wallRatio = fitPx.wallRatio;
+  const contentPxW = fitPx.contentW, contentPxH = fitPx.contentH;
+
   $('vizWall').style.width = wallPxW + 'px';
   $('vizWall').style.height = wallPxH + 'px';
   $('legendRatio').textContent = fmt(wallRatio,2) + ':1';
-
-  let contentPxW, contentPxH;
-  if(vizMode === 'contain'){
-    if(wallRatio > ratio){ contentPxH = wallPxH; contentPxW = wallPxH * ratio; }
-    else { contentPxW = wallPxW; contentPxH = wallPxW / ratio; }
-  } else {
-    if(wallRatio > ratio){ contentPxW = wallPxW; contentPxH = wallPxW / ratio; }
-    else { contentPxH = wallPxH; contentPxW = wallPxH * ratio; }
-  }
 
   const gridEl = $('vizContentGrid');
   gridEl.style.width = contentPxW + 'px';
@@ -1554,14 +1606,8 @@ function updateVisual(){
   gridEl.style.gridTemplateRows = 'repeat(' + pipRows + ', 1fr)';
 
   // Physical size of the whole content grid, in meters
-  let contentRealW, contentRealH;
-  if(vizMode === 'contain'){
-    if(wallRatio > ratio){ contentRealH = lastWallH; contentRealW = lastWallH * ratio; }
-    else { contentRealW = lastWallW; contentRealH = lastWallW / ratio; }
-  } else {
-    if(wallRatio > ratio){ contentRealW = lastWallW; contentRealH = lastWallW / ratio; }
-    else { contentRealH = lastWallH; contentRealW = lastWallH * ratio; }
-  }
+  const fitReal = computeContentFit(lastWallW, lastWallH, ratio, vizMode);
+  const contentRealW = fitReal.contentW, contentRealH = fitReal.contentH;
 
   // Per-tile physical size and resulting native LED resolution per tile
   const tileRealW = contentRealW / pipCols;
@@ -2021,6 +2067,236 @@ document.querySelectorAll('[data-ccmode]').forEach(btn => {
 $('ccAddBtn').addEventListener('click', () => { ccRows.push(20); renderCcList(); calcCc(); });
 renderCcList();
 calcCc();
+
+/* ================= PDF EXPORT ================= */
+
+function clean(id){
+  const el = $(id);
+  if(!el) return '';
+  return el.textContent.replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function clampRect(px,py,pw,ph, bx,by,bw,bh){
+  const x1 = Math.max(px, bx), y1 = Math.max(py, by);
+  const x2 = Math.min(px+pw, bx+bw), y2 = Math.min(py+ph, by+bh);
+  return { x:x1, y:y1, w:Math.max(0,x2-x1), h:Math.max(0,y2-y1) };
+}
+
+function drawPixelTitle(doc, x, y){
+  const dot = 1.15, gap = 0.3;
+  let curY = y;
+  ['CHRISTINAS','LED WAFFE'].forEach(word => {
+    let curX = x;
+    for(const ch of word){
+      const glyph = FONT[ch] || FONT[' '];
+      if(ch !== ' '){
+        for(let r=0;r<7;r++){
+          for(let c=0;c<5;c++){
+            if(glyph[r][c] === '1'){
+              doc.setFillColor(30,180,165);
+              doc.rect(curX + c*(dot+gap), curY + r*(dot+gap), dot, dot, 'F');
+            }
+          }
+        }
+      }
+      curX += 5*(dot+gap) + dot;
+    }
+    curY += 7*(dot+gap) + 3;
+  });
+  return curY + 3;
+}
+
+async function generatePdf(projectName){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const marginL = 18, marginR = 192;
+  let y = 16;
+  const dark = [22,26,34], muted = [110,120,135], cyan = [20,150,140], amber = [190,120,10];
+
+  function ensureSpace(needed){
+    if(y + needed > 280){ doc.addPage(); y = 20; }
+  }
+  function section(title){
+    ensureSpace(14);
+    doc.setFillColor(...cyan);
+    doc.rect(marginL, y-3.2, 2.6, 2.6, 'F');
+    doc.setFont(undefined, 'bold'); doc.setFontSize(11.5); doc.setTextColor(...dark);
+    doc.text(title, marginL+6, y);
+    doc.setFont(undefined, 'normal');
+    y += 7;
+  }
+  function row(label, value, captionText){
+    ensureSpace(captionText ? 11 : 7);
+    doc.setFontSize(9); doc.setTextColor(...muted);
+    doc.text(label, marginL+2, y);
+    doc.setFontSize(10.5); doc.setTextColor(...dark);
+    doc.text(String(value), marginL+68, y, { maxWidth: marginR-marginL-68 });
+    y += 5.5;
+    if(captionText){
+      doc.setFontSize(8); doc.setTextColor(...muted);
+      const lines = doc.splitTextToSize(captionText, marginR-marginL-2);
+      doc.text(lines, marginL+2, y);
+      y += lines.length*3.6 + 2.5;
+    } else {
+      y += 1.5;
+    }
+  }
+  function divider(){
+    doc.setDrawColor(225,228,232);
+    doc.line(marginL, y, marginR, y);
+    y += 6;
+  }
+
+  // Header
+  y = drawPixelTitle(doc, marginL, y);
+  doc.setFontSize(9); doc.setTextColor(...muted);
+  doc.text('LED-Wand-Kalkulator · Konfigurationsbericht', marginL, y); y += 7;
+
+  ensureSpace(14);
+  doc.setFontSize(17); doc.setFont(undefined,'bold'); doc.setTextColor(...dark);
+  doc.text(projectName, marginL, y, { maxWidth: marginR-marginL });
+  doc.setFont(undefined,'normal'); y += 6;
+  doc.setFontSize(8.5); doc.setTextColor(...muted);
+  doc.text('Erstellt am ' + new Date().toLocaleDateString('de-DE') + ' · nur für Festinstallationen', marginL, y);
+  y += 10;
+
+  // Geometrie
+  section('Geometrie');
+  row('Module (H × V)', clean('outModules'));
+  row('Physikalische Größe', clean('outSize'), clean('outSizeCaption'));
+  row('Seitenverhältnis', clean('outRatio'), clean('outRatioCaption'));
+  divider();
+
+  // Optik
+  section('Optik');
+  row('Pixel Pitch', ($('pixelPitch').value || '—') + ' mm');
+  row('Auflösung', clean('outRes'), clean('outResCaption'));
+  row('Pixeldichte', clean('outPpi'));
+  row('DISCAS Blickdistanz', clean('outDiscas'));
+  divider();
+
+  // Strom
+  section('Strom');
+  row('Leistung Ø', clean('outPowerAvg'));
+  row('Leistung Max', clean('outPowerMax'));
+  row('Empf. Mindestabsicherung', clean('outFuse'), clean('outFuseCaption'));
+  ensureSpace(11);
+  doc.setFontSize(8); doc.setTextColor(...amber);
+  const fuseLines = doc.splitTextToSize(clean('fuseBanner'), marginR-marginL-2);
+  doc.text(fuseLines, marginL+2, y);
+  y += fuseLines.length*3.6 + 4;
+  divider();
+
+  // Gewicht & Signal
+  section('Gewicht & Signal');
+  row('Gesamtgewicht', clean('outWeight'));
+  row('Benötigte Ports', clean('outPorts'), clean('outPortsCaption'));
+  divider();
+
+  // Content-Vergleich
+  section('Content-Vergleich (16:9)');
+  const modeBtn = document.querySelector('.mode-btn.active[data-mode]');
+  const modeLabel = modeBtn ? modeBtn.textContent.trim() : '—';
+  const pipCols = Math.max(1, Math.round(num('pipCols')) || 1);
+  const pipRows = Math.max(1, Math.round(num('pipRows')) || 1);
+  row('Darstellungsmodus', modeLabel);
+  row('PiP-Grid', pipCols + ' × ' + pipRows);
+
+  ensureSpace(70);
+  const boxX = marginL, boxY = y, boxW = marginR-marginL, boxH = 55;
+  if(lastWallW && lastWallH){
+    const ratio = (16*pipCols) / (9*pipRows);
+    const fit = computeContentFit(lastWallW, lastWallH, ratio, vizMode);
+    const scale = Math.min(boxW/lastWallW, (boxH-6)/lastWallH);
+    const wallW = lastWallW*scale, wallH = lastWallH*scale;
+    const wx = boxX + (boxW-wallW)/2, wy = boxY;
+    const contentW = fit.contentW*scale, contentH = fit.contentH*scale;
+    const cx = wx + (wallW-contentW)/2, cy = wy + (wallH-contentH)/2;
+
+    doc.setDrawColor(...dark); doc.setFillColor(250,251,252);
+    doc.rect(wx, wy, wallW, wallH, 'FD');
+
+    const tileW = contentW/pipCols, tileH = contentH/pipRows;
+    for(let r=0;r<pipRows;r++){
+      for(let c=0;c<pipCols;c++){
+        const clamped = clampRect(cx+c*tileW, cy+r*tileH, tileW, tileH, wx, wy, wallW, wallH);
+        if(clamped.w > 0.4 && clamped.h > 0.4){
+          doc.setDrawColor(...amber); doc.setFillColor(255,232,196);
+          doc.rect(clamped.x, clamped.y, clamped.w, clamped.h, 'FD');
+        }
+      }
+    }
+    doc.setDrawColor(...dark); doc.setLineWidth(0.35);
+    doc.rect(wx, wy, wallW, wallH, 'S');
+    doc.setLineWidth(0.2);
+
+    y = wy + wallH + 6;
+    doc.setFontSize(7.5); doc.setTextColor(...muted);
+    const legend = 'Grau/schwarz umrandet: LED-Wand (' + fmt(fit.wallRatio,2) + ':1)   ·   Amber: 16:9-Content je Kachel';
+    doc.text(legend, marginL, y);
+    y += 5;
+  } else {
+    y += 10;
+  }
+
+  ensureSpace(12);
+  doc.setFontSize(8); doc.setTextColor(...dark);
+  const vizCapLines = doc.splitTextToSize(clean('vizCaption'), marginR-marginL);
+  doc.text(vizCapLines, marginL, y);
+  y += vizCapLines.length*3.8 + 6;
+
+  // Footer on every page
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let p=1; p<=pageCount; p++){
+    doc.setPage(p);
+    doc.setFontSize(7.5); doc.setTextColor(...muted);
+    doc.text('Christinas LED Waffe · Seite ' + p + ' / ' + pageCount, marginL, 290);
+  }
+
+  const safeName = (projectName || 'LED-Wand').replace(/[^\w\-äöüÄÖÜß ]/g, '').trim().replace(/\s+/g, '_') || 'LED-Wand';
+  doc.save(safeName + '.pdf');
+}
+
+$('btnPdfExport').addEventListener('click', () => {
+  const suggestion = (lastWallW && lastWallH)
+    ? 'LED-Wand ' + fmt(lastWallW,1) + 'x' + fmt(lastWallH,1) + 'm'
+    : 'LED-Wand-Konfiguration';
+  $('pdfNameInput').value = suggestion;
+  $('pdfModalDesc').textContent = 'Name für dieses Angebot / diese Konfiguration — wird als Titel im PDF und als Dateiname verwendet.';
+  $('pdfModalDesc').classList.remove('error');
+  $('pdfModalOverlay').classList.add('show');
+  $('pdfNameInput').focus();
+  $('pdfNameInput').select();
+});
+
+$('pdfCancelBtn').addEventListener('click', () => $('pdfModalOverlay').classList.remove('show'));
+
+$('pdfModalOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'pdfModalOverlay') $('pdfModalOverlay').classList.remove('show');
+});
+
+$('pdfNameInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') $('pdfConfirmBtn').click();
+});
+
+$('pdfConfirmBtn').addEventListener('click', async () => {
+  const name = $('pdfNameInput').value.trim() || 'LED-Wand-Konfiguration';
+  if(!window.jspdf){
+    $('pdfModalDesc').textContent = 'PDF-Bibliothek konnte nicht geladen werden (keine Internetverbindung?). Bitte später erneut versuchen.';
+    $('pdfModalDesc').classList.add('error');
+    return;
+  }
+  $('pdfConfirmBtn').textContent = 'Erstelle …';
+  try{
+    await generatePdf(name);
+    $('pdfModalOverlay').classList.remove('show');
+  } catch(err){
+    $('pdfModalDesc').textContent = 'Fehler beim Erstellen: ' + err.message;
+    $('pdfModalDesc').classList.add('error');
+  } finally {
+    $('pdfConfirmBtn').textContent = 'PDF erstellen';
+  }
+});
 
 </script>
 
